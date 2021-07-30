@@ -1,0 +1,79 @@
+#include "mbed.h"
+
+DigitalOut CS1(PB_6,1);
+DigitalIn SDA(PB_9);
+DigitalIn SCL(PB_8);
+
+SPI device(PA_7, PA_6, PA_5); // mosi, miso, sclk
+I2C i2c(PB_9,PB_8); //D14 SDA, D15 scl
+
+
+
+/* Initializing Serial Communication */
+Serial pc_serial(SERIAL_TX, SERIAL_RX);        // Define o nome da ligação da comunigação serial, neste caso PC
+//Serial pc_serial(PA_2, PA_3);        // Define o nome da ligação da comunigação serial, neste caso PC
+
+
+int DAC_address = 0b0001110; //DAC address
+
+   
+
+void dac_config(int value){
+    CS1 = 0;
+    device.write(value);
+    CS1 = 1;
+    
+    }
+    
+
+void setup()
+
+{
+    dac_config(0);
+
+}
+
+
+
+
+int main()
+{
+    
+    pc_serial.baud(115200);
+    pc_serial.printf("Communication Test\n");
+    pc_serial.printf("CPU SystemCoreClock is %d Hz\r\n", SystemCoreClock);
+    
+    i2c.frequency(100000);// this is the standard frequency
+    SDA.mode(PullUp);
+    SCL.mode(PullUp);
+    
+    dac_config(0);
+    wait_ms(1000);
+
+    
+    while (1) {
+
+        char cmd[2];
+        //for 3.3V/2 
+        //cmd[1]=0b11111111;//LSB
+        //cmd[0]=0b00000111;//MSB
+        //for 3.3V -->4095
+
+        //for 400mV -->496
+        cmd[1]=0b11110000;//LSB
+        cmd[0]=0b00000001;//MSB        
+        
+        int status;
+
+        status=i2c.write(DAC_address << 1 ,cmd,2);
+        if(status!=0) {
+            pc_serial.printf("Write error \n");
+        }
+        else pc_serial.printf("DAC correctly updated.\n");
+
+    //73.9V
+        dac_config(150);
+        wait_ms(1000);
+
+    }
+}
